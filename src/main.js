@@ -16,20 +16,24 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
-renderer.xr.setFramebufferScaleFactor(1.0); // slightly lower for smoothness
+renderer.xr.setFramebufferScaleFactor(1.0); // keep stable on Quest 2
 
+// Local frame for stabilization
 const localFrame = new THREE.Group();
 scene.add(localFrame);
 localFrame.add(camera);
 
+// Spark renderer
 const spark = new SparkRenderer({ renderer, maxStdDev: Math.sqrt(5) });
 localFrame.add(spark);
 
 document.body.appendChild(renderer.domElement);
 
+// VR button
 const vrButton = VRButton.createButton(renderer);
 if (vrButton instanceof HTMLElement) document.body.appendChild(vrButton);
 
+// Responsive resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -43,35 +47,35 @@ const splatUrls = [
   './gs_Eistiens.splat'
 ];
 
-const splatObjects = [];
 let currentSplatIndex = 0;
+let currentSplat = null;
 
-// Preload splats
-for (const url of splatUrls) {
-  const s = new SplatMesh({ url });
-  s.visible = false;
-  s.position.set(0, 0, -2);
-  s.rotation.set(Math.PI, 0, 0); // correct orientation
-  localFrame.add(s);
-  splatObjects.push(s);
+// Dispose a splat safely
+function disposeSplat(s) {
+  if (!s) return;
+  if (s.material) s.material.dispose();
+  if (s.geometry) s.geometry.dispose();
+  s.parent?.remove(s);
 }
 
-// Show first splat
-splatObjects[currentSplatIndex].visible = true;
+// Load a splat by URL
+function loadSplat(url) {
+  // Dispose previous
+  disposeSplat(currentSplat);
 
+  // Create new SplatMesh
+  currentSplat = new SplatMesh({ url });
+  currentSplat.position.set(0, 0, -2);
+  currentSplat.rotation.set(Math.PI, 0, 0);
+  localFrame.add(currentSplat);
+}
+
+// Cycle to next/previous splat
 function cycleSplat(delta = 1) {
-  if (!splatObjects.length) return;
+  currentSplatIndex = (currentSplatIndex + delta + splatUrls.length) % splatUrls.length;
+  loadSplat(splatUrls[currentSplatIndex]);
 
-  // Hide current
-  splatObjects[currentSplatIndex].visible = false;
-
-  // Update index (wrap around)
-  currentSplatIndex = (currentSplatIndex + delta + splatObjects.length) % splatObjects.length;
-
-  // Show new splat
-  splatObjects[currentSplatIndex].visible = true;
-
-  // Haptics
+  // Haptic feedback (best-effort)
   try {
     const controller = renderer.xr.getController(0);
     if (!controller) return;
@@ -83,6 +87,9 @@ function cycleSplat(delta = 1) {
     }
   } catch (e) {}
 }
+
+// Load first splat on start
+loadSplat(splatUrls[currentSplatIndex]);
 
 // ----------------- VR Controllers -----------------
 const controller = renderer.xr.getController(0);
@@ -111,6 +118,7 @@ document.body.appendChild(help);
 let lastCameraPos = new THREE.Vector3();
 
 renderer.setAnimationLoop((time, xrFrame) => {
+  // Local frame stabilization for Quest 2
   if (lastCameraPos.distanceTo(camera.position) > 0.5) {
     localFrame.position.copy(camera.position).multiplyScalar(-1);
   }
