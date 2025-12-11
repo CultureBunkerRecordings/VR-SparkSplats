@@ -89,7 +89,7 @@ for (const url of splatUrls) {
   s.position.set(0, 0, -2);
 
   // Set the correct orientation
-  s.rotation.set(-Math.PI / 2, 0, 0);
+  s.rotation.set(Math.PI, 0, 0);
 
   // Add to localFrame instead of scene
   localFrame.add(s);
