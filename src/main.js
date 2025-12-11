@@ -7,37 +7,29 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   70,
   window.innerWidth / window.innerHeight,
-  0.01,      // wider near
-  100        // bigger far (better for splats)
+  0.01,
+  100
 );
 camera.position.set(0, 1.6, 2);
 
-// Basic renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
-renderer.xr.setFramebufferScaleFactor(2.0);
+renderer.xr.setFramebufferScaleFactor(1.2); // slightly lower for smoothness
 
-// Create a local coordinate frame (this fixes Quest-2 jitter)
 const localFrame = new THREE.Group();
 scene.add(localFrame);
-
-// Add camera + SparkRenderer to local frame
 localFrame.add(camera);
 
-// SparkRenderer
 const spark = new SparkRenderer({ renderer, maxStdDev: Math.sqrt(5) });
 localFrame.add(spark);
 
-// Append visible canvas
 document.body.appendChild(renderer.domElement);
 
-// VR button
 const vrButton = VRButton.createButton(renderer);
 if (vrButton instanceof HTMLElement) document.body.appendChild(vrButton);
 
-// Responsive resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -52,30 +44,34 @@ const splatUrls = [
 ];
 
 const splatObjects = [];
-let currentSplatIndex = -1;
+let currentSplatIndex = 0;
 
-function disposeSplat(s) {
-  if (!s) return;
-  if (s.material) s.material.dispose();
-  if (s.geometry) s.geometry.dispose();
-  s.parent?.remove(s);
+// Preload splats
+for (const url of splatUrls) {
+  const s = new SplatMesh({ url });
+  s.visible = false;
+  s.position.set(0, 0, -2);
+  s.rotation.set(Math.PI, 0, 0); // correct orientation
+  localFrame.add(s);
+  splatObjects.push(s);
 }
 
-function setActiveSplat(index) {
-  if (!splatObjects.length) return;
-  index = (index % splatObjects.length + splatObjects.length) % splatObjects.length;
-  splatObjects.forEach((s, i) => (s.visible = (i === index)));
-  currentSplatIndex = index;
-}
+// Show first splat
+splatObjects[currentSplatIndex].visible = true;
 
 function cycleSplat(delta = 1) {
   if (!splatObjects.length) return;
-  // Dispose previous splat
-  disposeSplat(splatObjects[currentSplatIndex]);
 
-  setActiveSplat(currentSplatIndex + delta);
+  // Hide current
+  splatObjects[currentSplatIndex].visible = false;
 
-  // Haptics (best-effort)
+  // Update index (wrap around)
+  currentSplatIndex = (currentSplatIndex + delta + splatObjects.length) % splatObjects.length;
+
+  // Show new splat
+  splatObjects[currentSplatIndex].visible = true;
+
+  // Haptics
   try {
     const controller = renderer.xr.getController(0);
     if (!controller) return;
@@ -83,32 +79,10 @@ function cycleSplat(delta = 1) {
     if (gp?.hapticActuators?.length) {
       gp.hapticActuators[0].pulse(0.5, 50);
     } else if (gp?.vibrationActuator) {
-      gp.vibrationActuator.playEffect('dual-rumble', {
-        duration: 50,
-        strongMagnitude: 0.5,
-        weakMagnitude: 0.5
-      });
+      gp.vibrationActuator.playEffect('dual-rumble', { duration: 50, strongMagnitude: 0.5, weakMagnitude: 0.5 });
     }
   } catch (e) {}
 }
-
-// Preload splats
-for (const url of splatUrls) {
-  const s = new SplatMesh({ url });
-  s.visible = false;
-  s.position.set(0, 0, -2);
-
-  // Set the correct orientation
-  s.rotation.set(Math.PI, 0, 0);
-
-  // Add to localFrame instead of scene
-  localFrame.add(s);
-
-  splatObjects.push(s);
-}
-
-
-if (splatObjects.length) setActiveSplat(0);
 
 // ----------------- VR Controllers -----------------
 const controller = renderer.xr.getController(0);
@@ -127,10 +101,9 @@ window.addEventListener('keydown', (e) => {
   else if (e.code === 'ArrowLeft') cycleSplat(-1);
 });
 
-// Small on-screen help
+// Help overlay
 const help = document.createElement('div');
-help.style.cssText =
-  'position:fixed;left:8px;bottom:8px;padding:6px;background:rgba(0,0,0,.5);color:#fff;font-size:12px;border-radius:4px;z-index:999;';
+help.style.cssText = 'position:fixed;left:8px;bottom:8px;padding:6px;background:rgba(0,0,0,.5);color:#fff;font-size:12px;border-radius:4px;z-index:999;';
 help.innerText = 'VR: trigger = next splat, squeeze = previous.';
 document.body.appendChild(help);
 
@@ -138,12 +111,10 @@ document.body.appendChild(help);
 let lastCameraPos = new THREE.Vector3();
 
 renderer.setAnimationLoop((time, xrFrame) => {
-
-  // // Quest-2 tracking stabilization (Spark official sample)
-  // if (lastCameraPos.distanceTo(camera.position) > 0.5) {
-  //   localFrame.position.copy(camera.position).multiplyScalar(-1);
-  // }
-  // lastCameraPos.copy(camera.position);
+  if (lastCameraPos.distanceTo(camera.position) > 0.5) {
+    localFrame.position.copy(camera.position).multiplyScalar(-1);
+  }
+  lastCameraPos.copy(camera.position);
 
   renderer.render(scene, camera);
 });
