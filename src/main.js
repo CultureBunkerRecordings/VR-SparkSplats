@@ -17,7 +17,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
-renderer.xr.setFramebufferScaleFactor(1.0);
+renderer.xr.setFramebufferScaleFactor(2.0);
 
 // Create a local coordinate frame (this fixes Quest-2 jitter)
 const localFrame = new THREE.Group();
@@ -72,7 +72,7 @@ function cycleSplat(delta = 1) {
   if (!splatObjects.length) return;
   // Dispose previous splat
   disposeSplat(splatObjects[currentSplatIndex]);
-  
+
   setActiveSplat(currentSplatIndex + delta);
 
   // Haptics (best-effort)
@@ -139,11 +139,11 @@ let lastCameraPos = new THREE.Vector3();
 
 renderer.setAnimationLoop((time, xrFrame) => {
 
-  // Quest-2 tracking stabilization (Spark official sample)
-  if (lastCameraPos.distanceTo(camera.position) > 0.5) {
-    localFrame.position.copy(camera.position).multiplyScalar(-1);
-  }
-  lastCameraPos.copy(camera.position);
+  // // Quest-2 tracking stabilization (Spark official sample)
+  // if (lastCameraPos.distanceTo(camera.position) > 0.5) {
+  //   localFrame.position.copy(camera.position).multiplyScalar(-1);
+  // }
+  // lastCameraPos.copy(camera.position);
 
   renderer.render(scene, camera);
 });
