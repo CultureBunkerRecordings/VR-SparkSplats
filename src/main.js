@@ -27,7 +27,7 @@ scene.add(localFrame);
 localFrame.add(camera);
 
 // SparkRenderer
-const spark = new SparkRenderer({ renderer });
+const spark = new SparkRenderer({ renderer, maxStdDev: Math.sqrt(5) });
 localFrame.add(spark);
 
 // Append visible canvas
