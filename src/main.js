@@ -18,6 +18,7 @@ renderer.xr.setFramebufferScaleFactor(2.0); // or 2.0
 const spark = new SparkRenderer({
   renderer: renderer,
 });
+spark.camera = camera;
 scene.add(spark);
 
 // append the renderer canvas to the DOM so you can see it
@@ -116,8 +117,6 @@ document.body.appendChild(help);
 
 // --------------- render loop --------------------
 renderer.setAnimationLoop(() => {
-  // fix for stutter
-  spark.setLocalSpaceFromCamera(camera);
   // render scene
   renderer.render(scene, camera);
 });
