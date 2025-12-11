@@ -116,7 +116,8 @@ document.body.appendChild(help);
 
 // --------------- render loop --------------------
 renderer.setAnimationLoop(() => {
-
+  // fix for stutter
+  spark.setLocalSpaceFromCamera(camera);
   // render scene
   renderer.render(scene, camera);
 });
