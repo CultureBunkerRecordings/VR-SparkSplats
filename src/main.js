@@ -11,6 +11,8 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
+renderer.xr.setFramebufferScaleFactor(2.0); // or 2.0
+
 
 // SparkRenderer - add to scene so sparks render
 const spark = new SparkRenderer({
