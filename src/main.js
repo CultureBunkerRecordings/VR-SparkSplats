@@ -88,14 +88,15 @@ for (const url of splatUrls) {
   s.visible = false;
   s.position.set(0, 0, -2);
 
-  // REMOVE incorrect rotation
-  // s.rotateX(Math.PI);   // ❌ Causes splat distortion & jitter
-  s.rotation.set(Math.PI, 0, 0);
+  // Set the correct orientation
+  s.rotation.set(-Math.PI / 2, 0, 0);
 
+  // Add to localFrame instead of scene
+  localFrame.add(s);
 
-  scene.add(s);
   splatObjects.push(s);
 }
+
 
 if (splatObjects.length) setActiveSplat(0);
 
