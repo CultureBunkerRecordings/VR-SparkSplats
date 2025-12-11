@@ -16,7 +16,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
-renderer.xr.setFramebufferScaleFactor(1.2); // slightly lower for smoothness
+renderer.xr.setFramebufferScaleFactor(1.0); // slightly lower for smoothness
 
 const localFrame = new THREE.Group();
 scene.add(localFrame);
