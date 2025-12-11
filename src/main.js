@@ -54,6 +54,13 @@ const splatUrls = [
 const splatObjects = [];
 let currentSplatIndex = -1;
 
+function disposeSplat(s) {
+  if (!s) return;
+  if (s.material) s.material.dispose();
+  if (s.geometry) s.geometry.dispose();
+  s.parent?.remove(s);
+}
+
 function setActiveSplat(index) {
   if (!splatObjects.length) return;
   index = (index % splatObjects.length + splatObjects.length) % splatObjects.length;
@@ -63,6 +70,9 @@ function setActiveSplat(index) {
 
 function cycleSplat(delta = 1) {
   if (!splatObjects.length) return;
+  // Dispose previous splat
+  disposeSplat(splatObjects[currentSplatIndex]);
+  
   setActiveSplat(currentSplatIndex + delta);
 
   // Haptics (best-effort)
