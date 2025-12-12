@@ -116,10 +116,11 @@ document.body.appendChild(help);
 
 // ----------- Quest-2 Stabilization Block -----------
 let lastCameraPos = new THREE.Vector3();
+let threshold = 0.2;
 
 renderer.setAnimationLoop((time, xrFrame) => {
   // Local frame stabilization for Quest 2
-  if (lastCameraPos.distanceTo(camera.position) > 0.5) {
+  if (lastCameraPos.distanceTo(camera.position) > threshold) {
     localFrame.position.copy(camera.position).multiplyScalar(-1);
   }
   lastCameraPos.copy(camera.position);
