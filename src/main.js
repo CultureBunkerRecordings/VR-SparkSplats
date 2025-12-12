@@ -108,6 +108,37 @@ document.body.appendChild(help);
 
 // ----------------- Render Loop -----------------
 // NO spark.render() call — Spark renders automatically
-renderer.setAnimationLoop(() => {
-  renderer.render(scene, camera);
+let hasInitialPose = false;
+
+renderer.setAnimationLoop((time, xrFrame) => {
+
+    const session = renderer.xr.getSession();
+    if (!session) return;
+
+    const referenceSpace = renderer.xr.getReferenceSpace();
+    const pose = xrFrame.getViewerPose(referenceSpace);
+    if (!pose) return; // XR not ready yet
+
+    // --- 1. Update Three.js camera from real headset pose ---
+    const view = pose.views[0];
+    const { x, y, z } = view.transform.position;
+    const { x: qx, y: qy, z: qz, w: qw } = view.transform.orientation;
+
+    camera.position.set(x, y, z);
+    camera.quaternion.set(qx, qy, qz, qw);
+
+    // --- 2. On first valid pose, sync Spark's local reference frame ---
+    if (!hasInitialPose) {
+        spark.setLocalSpaceFromCamera(camera); 
+        hasInitialPose = true;
+    }
+
+    // --- 3. Render Spark splats (only after initial alignment) ---
+    if (hasInitialPose) {
+        spark.render(xrFrame);
+    }
+
+    // --- 4. Render your Three.js scene ---
+    renderer.render(scene, camera);
 });
+
