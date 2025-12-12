@@ -95,9 +95,6 @@ document.body.appendChild(help);
 
 // ----------- Render Loop (Spark handles XR cameras) -----------
 renderer.setAnimationLoop((time, xrFrame) => {
-  // Spark renders splats using XR pose
-  spark.render(xrFrame);
-
   // Three.js renders normal objects (controllers)
   renderer.render(scene, camera);
 });
