@@ -1,42 +1,56 @@
 import * as THREE from 'three';
 import { SparkRenderer, SplatMesh, VRButton } from '@sparkjsdev/spark';
 
-// ------- Scene (only for UI/controllers/etc) -------
+// =====================================================
+// Scene (only for UI, controllers, VR button)
+// =====================================================
 const scene = new THREE.Scene();
 
-// Dummy camera (Spark provides the XR camera internally)
-const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
-camera.position.set(0, 0, 1);
+// IMPORTANT: Camera must start at (0,0,0)
+// WebXR overwrites it anyway.
+const camera = new THREE.PerspectiveCamera(
+  70,
+  window.innerWidth / window.innerHeight,
+  0.01,
+  100
+);
 
-// ------- Three.js Renderer -------
+// -----------------------------------------------------
+// Three.js Renderer
+// -----------------------------------------------------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
-
-// Quest 2 stability
-renderer.xr.setFramebufferScaleFactor(1.0);
+renderer.xr.setFramebufferScaleFactor(1.0);  // stable for Quest 2
 
 document.body.appendChild(renderer.domElement);
 
-// VR button
+// VR Button
 const vrButton = VRButton.createButton(renderer);
 if (vrButton instanceof HTMLElement) document.body.appendChild(vrButton);
 
-// Responsive resize
+// Resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// ------- Spark Renderer (this owns splats!) -------
-const spark = new SparkRenderer({ renderer, maxStdDev: Math.sqrt(5) });
+// =====================================================
+// Spark Renderer (this owns splats — NOT the scene)
+// =====================================================
+const spark = new SparkRenderer({
+  renderer,
+  maxStdDev: Math.sqrt(5)
+});
 
-// Spark renderer must be in the scene graph
+// Must be in scene graph
 scene.add(spark);
 
-// ------------------ Splat Manager ------------------
+// =====================================================
+// Splat Manager (load-on-demand, only 1 splat in memory)
+// =====================================================
 const splatUrls = [
   './gs_TheseusAndMinotaurLuma.splat',
   './gs_Elephant.splat',
@@ -47,11 +61,11 @@ let currentSplatIndex = 0;
 let currentSplat = null;
 
 // Dispose safely
-function disposeSplat(s) {
-  if (!s) return;
-  if (s.material) s.material.dispose();
-  if (s.geometry) s.geometry.dispose();
-  s.parent?.remove(s);
+function disposeSplat(mesh) {
+  if (!mesh) return;
+  if (mesh.material) mesh.material.dispose();
+  if (mesh.geometry) mesh.geometry.dispose();
+  mesh.parent?.remove(mesh);
 }
 
 // Load splat
@@ -59,30 +73,36 @@ function loadSplat(url) {
   disposeSplat(currentSplat);
 
   currentSplat = new SplatMesh({ url });
+
+  // Position splat in front of user
   currentSplat.position.set(0, 0, -2);
   currentSplat.rotation.set(Math.PI, 0, 0);
 
-  // IMPORTANT: Add splats to SparkRenderer, not scene
   spark.add(currentSplat);
 }
 
-// Change splat
+// Cycle splat
 function cycleSplat(delta = 1) {
-  currentSplatIndex = (currentSplatIndex + delta + splatUrls.length) % splatUrls.length;
+  currentSplatIndex =
+    (currentSplatIndex + delta + splatUrls.length) % splatUrls.length;
+
   loadSplat(splatUrls[currentSplatIndex]);
 
   // Haptics
   try {
     const c = renderer.xr.getController(0);
     const gp = c?.gamepad;
-    if (gp?.hapticActuators?.length) gp.hapticActuators[0].pulse(0.5, 50);
+    if (gp?.hapticActuators?.length)
+      gp.hapticActuators[0].pulse(0.5, 50);
   } catch (e) {}
 }
 
 // Load first splat
 loadSplat(splatUrls[currentSplatIndex]);
 
-// ----------------- VR Controller Input -----------------
+// =====================================================
+// Controllers
+// =====================================================
 const c1 = renderer.xr.getController(0);
 c1.addEventListener('select', () => cycleSplat(1));
 c1.addEventListener('squeeze', () => cycleSplat(-1));
@@ -93,52 +113,36 @@ c2.addEventListener('select', () => cycleSplat(1));
 c2.addEventListener('squeeze', () => cycleSplat(-1));
 scene.add(c2);
 
-// Keyboard fallback
+// Keyboard
 window.addEventListener('keydown', (e) => {
   if (e.code === 'ArrowRight' || e.code === 'Space') cycleSplat(1);
   else if (e.code === 'ArrowLeft') cycleSplat(-1);
 });
 
-// UI help
-const help = document.createElement('div');
-help.style.cssText =
-  'position:fixed;left:8px;bottom:8px;padding:6px;background:rgba(0,0,0,.5);color:#fff;font-size:12px;border-radius:4px;z-index:999;';
-help.innerText = 'VR: trigger = next splat, squeeze = previous.';
-document.body.appendChild(help);
+// =====================================================
+// Soft stabilization (Spark 0.1.10 compatible)
+// =====================================================
+let lastPos = new THREE.Vector3();
+const STAB = 0.18;
 
-// ----------------- Render Loop -----------------
-// NO spark.render() call — Spark renders automatically
-let hasInitialPose = false;
+// No localFrame — move splat instead
+function stabilize() {
+  if (!renderer.xr.isPresenting) return;
 
-renderer.setAnimationLoop((time, xrFrame) => {
+  const camPos = camera.getWorldPosition(new THREE.Vector3());
 
-    const session = renderer.xr.getSession();
-    if (!session) return;
+  if (lastPos.distanceTo(camPos) > STAB) {
+    // Move world opposite of camera jump
+    spark.position.sub(camPos).add(lastPos);
+  }
 
-    const referenceSpace = renderer.xr.getReferenceSpace();
-    const pose = xrFrame.getViewerPose(referenceSpace);
-    if (!pose) return; // XR not ready yet
+  lastPos.copy(camPos);
+}
 
-    // --- 1. Update Three.js camera from real headset pose ---
-    const view = pose.views[0];
-    const { x, y, z } = view.transform.position;
-    const { x: qx, y: qy, z: qz, w: qw } = view.transform.orientation;
-
-    camera.position.set(x, y, z);
-    camera.quaternion.set(qx, qy, qz, qw);
-
-    // --- 2. On first valid pose, sync Spark's local reference frame ---
-    if (!hasInitialPose) {
-        spark.setLocalSpaceFromCamera(camera); 
-        hasInitialPose = true;
-    }
-
-    // --- 3. Render Spark splats (only after initial alignment) ---
-    if (hasInitialPose) {
-        spark.render(xrFrame);
-    }
-
-    // --- 4. Render your Three.js scene ---
-    renderer.render(scene, camera);
+// =====================================================
+// Main Loop
+// =====================================================
+renderer.setAnimationLoop(() => {
+  stabilize();
+  renderer.render(scene, camera);
 });
-
