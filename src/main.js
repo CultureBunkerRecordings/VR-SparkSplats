@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { SparkRenderer, SplatMesh, VRButton } from '@sparkjsdev/spark';
+import { XRHandModelFactory } from "three/examples/jsm/webxr/XRHandModelFactory.js";
+
 
 // =====================================================
 // Scene (only for UI, controllers, VR button)
@@ -102,6 +104,20 @@ function cycleSplat(delta = 1) {
 // Load first splat
 loadSplat(splatUrls[currentSplatIndex]);
 
+//hands
+const handModelFactory = new XRHandModelFactory();
+
+const hand1 = renderer.xr.getHand(0);
+const hand2 = renderer.xr.getHand(1);
+
+scene.add(hand1);
+scene.add(hand2);
+
+// Add realistic mesh hands
+hand1.add(handModelFactory.createHandModel(hand1, "mesh"));
+hand2.add(handModelFactory.createHandModel(hand2, "mesh"));
+
+
 // =====================================================
 // Controllers
 // =====================================================
@@ -120,6 +136,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'ArrowRight' || e.code === 'Space') cycleSplat(1);
   else if (e.code === 'ArrowLeft') cycleSplat(-1);
 });
+
+
 
 // =====================================================
 // Soft stabilization (Spark 0.1.10 compatible)
