@@ -52,6 +52,8 @@ scene.add(spark);
 // Splat Manager (load-on-demand, only 1 splat in memory)
 // =====================================================
 const splatUrls = [
+  './gs_Peter.splat',
+  './gs_Dead_Christ.splat',
   './gs_TheseusAndMinotaurLuma.splat',
   './gs_Elephant.splat',
   './gs_Eistiens.splat'
