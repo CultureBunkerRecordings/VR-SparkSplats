@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { SparkRenderer, SplatMesh, VRButton } from "@sparkjsdev/spark";
 import { XRHandModelFactory } from "three/examples/jsm/webxr/XRHandModelFactory.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 // =====================================================
 // Scene & Camera
@@ -13,7 +14,9 @@ const camera = new THREE.PerspectiveCamera(
   0.01,
   100
 );
-camera.position.set(0, 0, 0);
+
+// IMPORTANT: non-XR needs an actual camera pose
+camera.position.set(0, 0, 2);
 
 // =====================================================
 // Renderer
@@ -22,14 +25,23 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.xr.enabled = true;
-
-// Quest 2 stability
 renderer.xr.setFramebufferScaleFactor(1.0);
 
 document.body.appendChild(renderer.domElement);
 
 // =====================================================
-// VR Button (XR options go HERE)
+// Desktop Controls (Non-XR fallback)
+// =====================================================
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.enablePan = true;
+controls.enableZoom = true;
+controls.target.set(0, 0, -2);
+controls.update();
+
+// =====================================================
+// VR Button
 // =====================================================
 const vrButton = VRButton.createButton(renderer, {
   optionalFeatures: [
@@ -41,7 +53,18 @@ const vrButton = VRButton.createButton(renderer, {
 
 document.body.appendChild(vrButton);
 
+// Disable desktop controls while in XR
+renderer.xr.addEventListener("sessionstart", () => {
+  controls.enabled = false;
+});
+
+renderer.xr.addEventListener("sessionend", () => {
+  controls.enabled = true;
+});
+
+// =====================================================
 // Resize
+// =====================================================
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -59,7 +82,7 @@ const spark = new SparkRenderer({
 scene.add(spark);
 
 // =====================================================
-// Splat Manager (single splat in memory)
+// Splat Manager
 // =====================================================
 const splatUrls = [
   "./gs_Peter.splat",
@@ -98,7 +121,7 @@ function cycleSplat(delta) {
 }
 
 // =====================================================
-// XR HANDS (Quest 2)
+// XR Hands
 // =====================================================
 renderer.xr.addEventListener("sessionstart", () => {
   const factory = new XRHandModelFactory();
@@ -112,7 +135,6 @@ renderer.xr.addEventListener("sessionstart", () => {
   scene.add(handL);
   scene.add(handR);
 
-  // Optional pinch actions
   handR.addEventListener("pinchstart", () => cycleSplat(1));
   handL.addEventListener("pinchstart", () => cycleSplat(-1));
 });
@@ -129,5 +151,10 @@ window.addEventListener("keydown", (e) => {
 // Render Loop
 // =====================================================
 renderer.setAnimationLoop(() => {
+  // Only update controls when NOT in XR
+  if (!renderer.xr.isPresenting) {
+    controls.update();
+  }
+
   renderer.render(scene, camera);
 });
