@@ -15,8 +15,9 @@ const camera = new THREE.PerspectiveCamera(
   100
 );
 
+
 // IMPORTANT: non-XR needs an actual camera pose
-camera.position.set(0, 0, 2);
+camera.position.set(0, 0, 0);
 
 // =====================================================
 // Renderer
@@ -106,10 +107,13 @@ function loadSplat(i) {
   disposeSplat(currentSplat);
 
   const mesh = new SplatMesh({ url: splatUrls[i] });
-  mesh.position.set(0, 0, -2);
+  const contentRoot = new THREE.Group();
+  contentRoot.position.set(0, 0, -2); // XR-safe placement
+  scene.add(contentRoot);
+
   mesh.rotation.set(Math.PI, 0, 0);
 
-  spark.add(mesh);
+  contentRoot.add(mesh);
   currentSplat = mesh;
 }
 
