@@ -52,15 +52,18 @@ function init() {
   // =====================================================
   // VR Button
   // =====================================================
-  const vrButton = VRButton.createButton(renderer, {
-    optionalFeatures: [
-      "local-floor",
-      "hand-tracking",
-      "bounded-floor",
-    ],
-  });
+ const vrButton = VRButton.createButton(renderer, {
+  optionalFeatures: [
+    "local-floor",
+    "hand-tracking",
+    "bounded-floor",
+  ],
+});
 
+if (vrButton instanceof HTMLElement) {
   document.body.appendChild(vrButton);
+}
+
 
   // Disable desktop controls while in XR
   renderer.xr.addEventListener("sessionstart", () => {
