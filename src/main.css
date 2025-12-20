@@ -1,0 +1,22 @@
+#instructions {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  max-width: 320px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 6px;
+  pointer-events: none; /* don't block canvas interaction */
+  z-index: 10;
+}
+
+@media (max-width: 600px) {
+  #instructions {
+    font-size: 11px;
+    max-width: 260px;
+  }
+}

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { SparkRenderer, SplatMesh, VRButton } from "@sparkjsdev/spark";
 import { XRHandModelFactory } from "three/examples/jsm/webxr/XRHandModelFactory.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import "./main.css";
 
 
 
@@ -11,6 +12,16 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function init() {
+
+  const instructions = document.getElementById("instructions");
+
+  if (instructions) {
+    setTimeout(() => {
+      instructions.style.opacity = "0";
+      instructions.style.transition = "opacity 1s";
+    }, 6000);
+  }
+
   // =====================================================
   // Scene & Camera
   // =====================================================
@@ -152,8 +163,15 @@ if (vrButton instanceof HTMLElement) {
 
     handR.addEventListener("pinchstart", () => cycleSplat(1));
     handL.addEventListener("pinchstart", () => cycleSplat(-1));
+
+    const instructions = document.getElementById("instructions");
+    if (instructions) instructions.style.display = "none";
   });
 
+  renderer.xr.addEventListener("sessionend", () => {
+    const instructions = document.getElementById("instructions");
+    if (instructions) instructions.style.display = "block";
+  });
   // =====================================================
   // Keyboard fallback
   // =====================================================
