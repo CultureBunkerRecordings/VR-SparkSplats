@@ -5,8 +5,6 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "./main.css";
 
 
-
-
 document.addEventListener("DOMContentLoaded", () => {
   init();
 });
@@ -63,17 +61,17 @@ function init() {
   // =====================================================
   // VR Button
   // =====================================================
- const vrButton = VRButton.createButton(renderer, {
-  optionalFeatures: [
-    "local-floor",
-    "hand-tracking",
-    "bounded-floor",
-  ],
-});
+  const vrButton = VRButton.createButton(renderer, {
+    optionalFeatures: [
+      "local-floor",
+      "hand-tracking",
+      "bounded-floor",
+    ],
+  });
 
-if (vrButton instanceof HTMLElement) {
-  document.body.appendChild(vrButton);
-}
+  if (vrButton instanceof HTMLElement) {
+    document.body.appendChild(vrButton);
+  }
 
 
   // Disable desktop controls while in XR
@@ -145,6 +143,46 @@ if (vrButton instanceof HTMLElement) {
     index = (index + delta + splatUrls.length) % splatUrls.length;
     loadSplat(index);
   }
+
+  // =====================================================
+  // Mobile: Two-finger tap to cycle splats
+  // =====================================================
+  let twoFingerTapStart = 0;
+  let twoFingerMoved = false;
+
+  renderer.domElement.addEventListener(
+    "touchstart",
+    (e) => {
+      if (e.touches.length === 2) {
+        twoFingerTapStart = performance.now();
+        twoFingerMoved = false;
+      }
+    },
+    { passive: true }
+  );
+
+  renderer.domElement.addEventListener(
+    "touchmove",
+    (e) => {
+      if (e.touches.length === 2) {
+        twoFingerMoved = true;
+      }
+    },
+    { passive: true }
+  );
+
+  renderer.domElement.addEventListener(
+    "touchend",
+    () => {
+      const duration = performance.now() - twoFingerTapStart;
+
+      if (!twoFingerMoved && duration < 300) {
+        cycleSplat(1);
+      }
+    },
+    { passive: true }
+  );
+
 
   // =====================================================
   // XR Hands
