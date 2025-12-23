@@ -111,6 +111,8 @@ function init() {
     "./gs_TheseusAndMinotaurLuma.splat",
     "./gs_Elephant.splat",
     "./gs_Eistiens.splat",
+    "./RobotSplat.splat",
+    "./EpsteinWoman.splat",
   ];
 
   let index = 0;
