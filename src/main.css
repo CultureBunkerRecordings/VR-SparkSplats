@@ -40,7 +40,7 @@ h1 { font-family: Georgia, serif; font-size: clamp(44px, 7vw, 92px); font-weight
 .collection-card--2 { background: #171c1d; }
 .collection-card__number { font-size: 12px; position: relative; z-index: 1; }
 .collection-card__art { border: 1px solid #757b76; height: 52%; left: 18%; position: absolute; top: 14%; transform: rotate(-7deg); width: 58%; }
-.collection-card--1 .collection-card__art { border-radius: 50% 46% 43% 53%; transform: rotate(12deg); }
+.collection-card--1 .collection-card__art { transform: rotate(12deg); }
 .collection-card--2 .collection-card__art { transform: rotate(38deg); }
 .collection-card__content { bottom: 24px; display: block; left: 20px; max-width: 80%; position: absolute; }
 .collection-card__meta { display: block; font-size: 11px; letter-spacing: 0.08em; margin-bottom: 10px; text-transform: uppercase; }
