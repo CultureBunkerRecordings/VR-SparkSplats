@@ -1,234 +1,70 @@
-import * as THREE from "three";
-import { SparkRenderer, SplatMesh, VRButton } from "@sparkjsdev/spark";
-import { XRHandModelFactory } from "three/examples/jsm/webxr/XRHandModelFactory.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "./main.css";
+import { collections } from "./collections.js";
+import { mountVrViewer } from "./vr-viewer.js";
 
+const app = document.getElementById("app");
+let disposeCurrentView = () => {};
 
-document.addEventListener("DOMContentLoaded", () => {
-  init();
-});
-
-function init() {
-
-  const instructions = document.getElementById("instructions");
-
-  if (instructions) {
-    setTimeout(() => {
-      instructions.style.opacity = "0";
-      instructions.style.transition = "opacity 1s";
-    }, 6000);
-  }
-
-  // =====================================================
-  // Scene & Camera
-  // =====================================================
-  const scene = new THREE.Scene();
-
-  const camera = new THREE.PerspectiveCamera(
-    70,
-    window.innerWidth / window.innerHeight,
-    0.01,
-    100
-  );
-
-
-  // IMPORTANT: non-XR needs an actual camera pose
-  camera.position.set(0, 0, 0);
-
-  // =====================================================
-  // Renderer
-  // =====================================================
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
-  renderer.xr.setFramebufferScaleFactor(1.0);
-
-  document.body.appendChild(renderer.domElement);
-
-  // =====================================================
-  // Desktop Controls (Non-XR fallback)
-  // =====================================================
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-  controls.enablePan = true;
-  controls.enableZoom = true;
-  controls.target.set(0, 0, -2);
-  controls.update();
-
-  // =====================================================
-  // VR Button
-  // =====================================================
-  const vrButton = VRButton.createButton(renderer, {
-    optionalFeatures: [
-      "local-floor",
-      "hand-tracking",
-      "bounded-floor",
-    ],
-  });
-
-  if (vrButton instanceof HTMLElement) {
-    document.body.appendChild(vrButton);
-  }
-
-
-  // Disable desktop controls while in XR
-  renderer.xr.addEventListener("sessionstart", () => {
-    controls.enabled = false;
-  });
-
-  renderer.xr.addEventListener("sessionend", () => {
-    controls.enabled = true;
-  });
-
-  // =====================================================
-  // Resize
-  // =====================================================
-  window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  // =====================================================
-  // Spark Renderer
-  // =====================================================
-  const spark = new SparkRenderer({
-    renderer,
-    maxStdDev: Math.sqrt(5),
-  });
-
-  scene.add(spark);
-
-  // =====================================================
-  // Splat Manager
-  // =====================================================
-  const splatUrls = [
-    "./gs_Peter.splat",
-    "./gs_Dead_Christ.splat",
-    "./gs_TheseusAndMinotaurLuma.splat",
-    "./gs_Elephant.splat",
-    "./gs_Eistiens.splat",
-    "./RobotSplat.splat",
-    "./EpsteinWoman.splat",
-  ];
-
-  let index = 0;
-  let currentSplat = null;
-
-  function disposeSplat(mesh) {
-    if (!mesh) return;
-    mesh.parent?.remove(mesh);
-    mesh.geometry?.dispose?.();
-    mesh.material?.dispose?.();
-  }
-
-  function loadSplat(i) {
-    disposeSplat(currentSplat);
-
-    const mesh = new SplatMesh({ url: splatUrls[i] });
-    const contentRoot = new THREE.Group();
-    contentRoot.position.set(0, 0, -2); // XR-safe placement
-    scene.add(contentRoot);
-
-    mesh.rotation.set(Math.PI, 0, 0);
-
-    contentRoot.add(mesh);
-    currentSplat = mesh;
-  }
-
-  loadSplat(index);
-
-  function cycleSplat(delta) {
-    index = (index + delta + splatUrls.length) % splatUrls.length;
-    loadSplat(index);
-  }
-
-  // =====================================================
-  // Mobile: Two-finger tap to cycle splats
-  // =====================================================
-  let twoFingerTapStart = 0;
-  let twoFingerMoved = false;
-
-  renderer.domElement.addEventListener(
-    "touchstart",
-    (e) => {
-      if (e.touches.length === 2) {
-        twoFingerTapStart = performance.now();
-        twoFingerMoved = false;
-      }
-    },
-    { passive: true }
-  );
-
-  renderer.domElement.addEventListener(
-    "touchmove",
-    (e) => {
-      if (e.touches.length === 2) {
-        twoFingerMoved = true;
-      }
-    },
-    { passive: true }
-  );
-
-  renderer.domElement.addEventListener(
-    "touchend",
-    () => {
-      const duration = performance.now() - twoFingerTapStart;
-
-      if (!twoFingerMoved && duration < 300) {
-        cycleSplat(1);
-      }
-    },
-    { passive: true }
-  );
-
-
-  // =====================================================
-  // XR Hands
-  // =====================================================
-  renderer.xr.addEventListener("sessionstart", () => {
-    const factory = new XRHandModelFactory();
-
-    const handL = renderer.xr.getHand(0);
-    const handR = renderer.xr.getHand(1);
-
-    handL.add(factory.createHandModel(handL, "mesh"));
-    handR.add(factory.createHandModel(handR, "mesh"));
-
-    scene.add(handL);
-    scene.add(handR);
-
-    handR.addEventListener("pinchstart", () => cycleSplat(1));
-    handL.addEventListener("pinchstart", () => cycleSplat(-1));
-
-    const instructions = document.getElementById("instructions");
-    if (instructions) instructions.style.display = "none";
-  });
-
-  renderer.xr.addEventListener("sessionend", () => {
-    const instructions = document.getElementById("instructions");
-    if (instructions) instructions.style.display = "block";
-  });
-  // =====================================================
-  // Keyboard fallback
-  // =====================================================
-  window.addEventListener("keydown", (e) => {
-    if (e.code === "ArrowRight" || e.code === "Space") cycleSplat(1);
-    if (e.code === "ArrowLeft") cycleSplat(-1);
-  });
-
-  // =====================================================
-  // Render Loop
-  // =====================================================
-  renderer.setAnimationLoop(() => {
-    // Only update controls when NOT in XR
-    if (!renderer.xr.isPresenting) {
-      controls.update();
-    }
-
-    renderer.render(scene, camera);
-  });
+function renderShell(content, activeRoute) {
+  app.innerHTML = `
+    <header class="site-header">
+      <a class="wordmark" href="#/" aria-label="Splatology home">Splatology</a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#/" ${activeRoute === "home" ? 'aria-current="page"' : ""}>Collections</a>
+        <a class="vr-link" href="#/vr" ${activeRoute === "vr" ? 'aria-current="page"' : ""}>Enter VR</a>
+      </nav>
+    </header>
+    <main>${content}</main>
+  `;
 }
+
+function renderHome() {
+  const cards = collections.map((collection, index) => `
+    <a class="collection-card collection-card--${index % 3}" href="#/collections/${collection.id}">
+      <span class="collection-card__number">${String(index + 1).padStart(2, "0")}</span>
+      <span class="collection-card__art">
+        <img src="${collection.thumbnail}" alt="" />
+      </span>
+      <span class="collection-card__content">
+        <span class="collection-card__meta">${collection.works.length} works</span>
+        <span class="collection-card__title">${collection.title}</span>
+        <span class="collection-card__description">${collection.description}</span>
+      </span>
+    </a>`).join("");
+  renderShell(`<section class="home-intro"><p class="eyebrow">Gaussian splat studies</p><h1>Collections</h1><p class="home-intro__copy">An archive of gaussian splats captured with my bespoke scanning system</p><a class="text-action" href="#/vr">Open the immersive viewer <span aria-hidden="true">&#8594;</span></a></section><section class="collection-index" aria-label="Collections">${cards}</section>`, "home");
+}
+
+function renderCollection(collection) {
+  if (!collection) {
+    renderShell(`<section class="empty-state"><p class="eyebrow">Not found</p><h1>This collection is not here.</h1><a class="text-action" href="#/">Return to collections <span aria-hidden="true">&#8594;</span></a></section>`, "home");
+    return;
+  }
+  const works = collection.works.length ? collection.works.map((work) => `<article class="work-tile"><div class="work-frame"><iframe src="${work.src}" title="${work.title}" loading="lazy" allow="fullscreen; xr-spatial-tracking"></iframe></div><div class="work-caption"><h2>${work.title}</h2><button class="icon-button" type="button" data-expand-src="${work.src}" data-expand-title="${work.title}" aria-label="Expand ${work.title}">&#8599;</button></div></article>`).join("") : `<div class="gallery-empty"><p>No exported embeds have been added to this collection yet.</p></div>`;
+  renderShell(`<section class="collection-heading"><a class="back-link" href="#/">&#8592; All collections</a><p class="eyebrow">Collection</p><h1>${collection.title}</h1><p>${collection.description}</p></section><section class="work-gallery" aria-label="${collection.title} works">${works}</section><dialog class="work-dialog"><div class="work-dialog__bar"><p class="eyebrow" data-dialog-title></p><button class="icon-button" type="button" data-close-dialog aria-label="Close expanded work">&#215;</button></div><iframe title="Expanded work" allow="fullscreen; xr-spatial-tracking"></iframe></dialog>`, "collections");
+  const dialog = app.querySelector(".work-dialog");
+  app.querySelectorAll("[data-expand-src]").forEach((button) => button.addEventListener("click", () => {
+    dialog.querySelector("iframe").src = button.dataset.expandSrc;
+    dialog.querySelector("[data-dialog-title]").textContent = button.dataset.expandTitle;
+    dialog.showModal();
+  }));
+  app.querySelector("[data-close-dialog]")?.addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => { dialog.querySelector("iframe").src = "about:blank"; });
+}
+
+function renderVr() {
+  app.innerHTML = `<div class="vr-page"><a class="vr-back" href="#/" aria-label="Return to collections">&#8592; Collections</a><div id="vr-root"></div></div>`;
+  disposeCurrentView = mountVrViewer(app.querySelector("#vr-root"));
+}
+
+function renderRoute() {
+  disposeCurrentView();
+  disposeCurrentView = () => {};
+  const parts = window.location.hash.replace(/^#\/?/, "").split("/");
+  if (parts[0] === "vr") renderVr();
+  else if (parts[0] === "collections" && parts[1]) renderCollection(collections.find((collection) => collection.id === parts[1]));
+  else renderHome();
+}
+
+window.addEventListener("hashchange", renderRoute);
+if (!window.location.hash) window.location.hash = "#/";
+renderRoute();
