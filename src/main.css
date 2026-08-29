@@ -18,7 +18,8 @@ button { font: inherit; }
   padding: 18px clamp(20px, 4vw, 64px);
 }
 
-.wordmark { font-size: 14px; font-weight: 700; letter-spacing: 0.12em; }
+.wordmark { display: block; height: 58px; width: 58px; }
+.wordmark img { display: block; height: 100%; width: 100%; }
 .site-nav { align-items: center; display: flex; gap: 22px; font-size: 14px; }
 .site-nav a { border-bottom: 1px solid transparent; padding: 5px 0; }
 .site-nav a:hover, .site-nav a[aria-current="page"] { border-color: currentColor; }

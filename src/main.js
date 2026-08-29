@@ -8,7 +8,7 @@ let disposeCurrentView = () => {};
 function renderShell(content, activeRoute) {
   app.innerHTML = `
     <header class="site-header">
-      <a class="wordmark" href="#/" aria-label="Splatology home">Splatology</a>
+      <a class="wordmark" href="#/" aria-label="Splatology home"><img src="/media/Logo.png" alt="" /></a>
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="#/" ${activeRoute === "home" ? 'aria-current="page"' : ""}>Collections</a>
         <a class="vr-link" href="#/vr" ${activeRoute === "vr" ? 'aria-current="page"' : ""}>Enter VR</a>
