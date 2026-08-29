@@ -30,6 +30,7 @@ button { font: inherit; }
 h1, h2, p { margin-top: 0; }
 h1 { font-family: Georgia, serif; font-size: clamp(44px, 7vw, 92px); font-weight: 400; letter-spacing: 0; line-height: 0.96; margin-bottom: 28px; }
 .home-intro__copy, .collection-heading > p:not(.eyebrow) { font-family: Georgia, serif; font-size: 20px; line-height: 1.45; max-width: 570px; }
+.home-intro__video { display: block; margin-top: 28px; max-width: 570px; width: 100%; }
 .text-action, .back-link { border-bottom: 1px solid currentColor; display: inline-block; font-size: 14px; padding-bottom: 4px; }
 .text-action { margin-top: 20px; }
 

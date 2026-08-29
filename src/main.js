@@ -31,7 +31,7 @@ function renderHome() {
         <span class="collection-card__description">${collection.description}</span>
       </span>
     </a>`).join("");
-  renderShell(`<section class="home-intro"><p class="eyebrow">Gaussian splat studies</p><h1>Collections</h1><p class="home-intro__copy">An archive of gaussian splats captured with my bespoke scanning system</p><a class="text-action" href="#/vr">Open the immersive viewer <span aria-hidden="true">&#8594;</span></a></section><section class="collection-index" aria-label="Collections">${cards}</section>`, "home");
+  renderShell(`<section class="home-intro"><p class="eyebrow">Gaussian splat studies</p><h1>Collections</h1><p class="home-intro__copy">An archive of gaussian splats captured with my bespoke scanning system</p><video class="home-intro__video" controls preload="metadata" src="/media/Splat_Machine.mov">Your browser does not support embedded video.</video></section><section class="collection-index" aria-label="Collections">${cards}</section>`, "home");
 }
 
 function renderCollection(collection) {
